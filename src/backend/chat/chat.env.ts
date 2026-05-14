@@ -1,3 +1,7 @@
+import Redis from "ioredis";
+
+import { getRedisUrl } from "@/lib/env";
+
 const DEFAULT_OLLAMA_BASE_URL = "http://localhost:11434";
 const DEFAULT_MAIN_MODEL = "gemma-main-placeholder";
 const DEFAULT_GUARDRAIL_MODEL = "qwen-guardrail-placeholder";
@@ -34,4 +38,15 @@ export function getOllamaRequestTimeoutMs() {
   }
 
   return parsed;
+}
+
+// BullMQ needs maxRetriesPerRequest: null — do NOT share with the app-wide redis singleton.
+// Queue and Worker each call this to get an independent connection.
+export function createBullmqConnection() {
+  return new Redis(getRedisUrl(), {
+    maxRetriesPerRequest: null,
+    enableReadyCheck: false,
+    family: 4,
+    lazyConnect: true,
+  });
 }

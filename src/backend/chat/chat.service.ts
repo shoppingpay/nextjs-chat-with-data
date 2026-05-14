@@ -1,127 +1,77 @@
-import { Injectable, Logger, ServiceUnavailableException } from "@nestjs/common";
-
 import {
-  getOllamaBaseUrl,
-  getOllamaGuardrailModel,
-  getOllamaMainModel,
-  getOllamaRequestTimeoutMs,
-} from "@/backend/chat/chat.env";
+  Injectable,
+  NotFoundException,
+} from "@nestjs/common";
+import { Queue } from "bullmq";
 
-const OFF_TOPIC_REPLY =
-  "ขออภัย ฉันตอบได้เฉพาะเรื่องที่เกี่ยวกับร้านกาแฟ (เมนู, สินค้า, ยอดขาย, สต็อก) เท่านั้น";
-const GENERIC_LLM_UNAVAILABLE = "AI service is temporarily unavailable.";
+import { createBullmqConnection } from "@/backend/chat/chat.env";
+import {
+  CHAT_QUEUE_NAME,
+  type ChatJobData,
+  type ChatJobResult,
+} from "@/backend/chat/chat.types";
 
-export type ChatInput = {
-  message: string;
+export type EnqueueResult = {
+  jobId: string;
+  sessionId: string;
+  status: "queued";
 };
 
-export type ChatResult = {
-  reply: string;
-  inScope: boolean;
-};
-
-type OllamaGenerateResponse = {
-  response?: string;
-};
+export type JobResult =
+  | { jobId: string; state: "queued" | "processing" }
+  | { jobId: string; state: "completed"; result: ChatJobResult }
+  | { jobId: string; state: "failed"; error: string };
 
 export class ChatService {
-  private readonly logger = new Logger(ChatService.name);
+  private readonly queue: Queue<ChatJobData, ChatJobResult>;
 
-  async chat(input: ChatInput): Promise<ChatResult> {
-    const inScope = await this.isInScope(input.message);
-
-    if (!inScope) {
-      return { reply: OFF_TOPIC_REPLY, inScope: false };
-    }
-
-    const reply = await this.generateReply(input.message);
-    return { reply, inScope: true };
+  constructor() {
+    this.queue = new Queue<ChatJobData, ChatJobResult>(CHAT_QUEUE_NAME, {
+      connection: createBullmqConnection(),
+    });
   }
 
-  private async isInScope(message: string) {
-    const prompt = [
-      'You are a strict topic filter. Answer ONLY "YES" or "NO".',
-      "Is the user message related to a coffee shop (menu, products, sales, stock, customers)?",
-      `Message: "${message}"`,
-      "Answer:",
-    ].join("\n");
+  async enqueue(
+    userId: string,
+    message: string,
+    sessionId?: string,
+  ): Promise<EnqueueResult> {
+    const resolvedSessionId = sessionId ?? crypto.randomUUID();
+    const job = await this.queue.add("process-message", {
+      sessionId: resolvedSessionId,
+      userId,
+      message,
+    });
 
-    const response = await this.callOllama(getOllamaGuardrailModel(), prompt);
-    return response.trim().toUpperCase().startsWith("YES");
+    return {
+      jobId: String(job.id),
+      sessionId: resolvedSessionId,
+      status: "queued",
+    };
   }
 
-  private async generateReply(message: string) {
-    const prompt = [
-      "You are a helpful coffee shop assistant. Answer in Thai unless the customer asks otherwise.",
-      "Keep answers concise and grounded in coffee shop topics.",
-      "",
-      `Customer: ${message}`,
-      "Assistant:",
-    ].join("\n");
+  async getResult(userId: string, jobId: string): Promise<JobResult> {
+    const job = await this.queue.getJob(jobId);
 
-    const reply = (await this.callOllama(getOllamaMainModel(), prompt)).trim();
-
-    if (!reply) {
-      this.logger.error("Ollama returned an empty completion.");
-      throw new ServiceUnavailableException(GENERIC_LLM_UNAVAILABLE);
+    if (!job || job.data.userId !== userId) {
+      throw new NotFoundException(`Job ${jobId} not found.`);
     }
 
-    return reply;
-  }
+    const state = await job.getState();
 
-  private async callOllama(model: string, prompt: string) {
-    const baseUrl = getOllamaBaseUrl().replace(/\/$/, "");
-    const url = `${baseUrl}/api/generate`;
-    const controller = new AbortController();
-    const timeout = setTimeout(
-      () => controller.abort(),
-      getOllamaRequestTimeoutMs(),
-    );
-
-    let response: Response;
-
-    try {
-      response = await fetch(url, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ model, prompt, stream: false }),
-        signal: controller.signal,
-      });
-    } catch (error) {
-      const reason =
-        error instanceof Error && error.name === "AbortError"
-          ? "timed out"
-          : (error as Error).message;
-
-      this.logger.error(
-        `Ollama request failed (model=${model}, url=${url}): ${reason}`,
-      );
-      throw new ServiceUnavailableException(GENERIC_LLM_UNAVAILABLE);
-    } finally {
-      clearTimeout(timeout);
+    if (state === "completed") {
+      return { jobId, state: "completed", result: job.returnvalue };
     }
 
-    if (!response.ok) {
-      const detail = await response.text().catch(() => "");
-
-      this.logger.error(
-        `Ollama returned ${response.status} ${response.statusText} (model=${model}): ${detail}`,
-      );
-      throw new ServiceUnavailableException(GENERIC_LLM_UNAVAILABLE);
+    if (state === "failed") {
+      return {
+        jobId,
+        state: "failed",
+        error: job.failedReason ?? "Unknown error",
+      };
     }
 
-    let body: OllamaGenerateResponse;
-
-    try {
-      body = (await response.json()) as OllamaGenerateResponse;
-    } catch (error) {
-      this.logger.error(
-        `Failed to parse Ollama response as JSON (model=${model}): ${(error as Error).message}`,
-      );
-      throw new ServiceUnavailableException(GENERIC_LLM_UNAVAILABLE);
-    }
-
-    return body.response ?? "";
+    return { jobId, state: state === "active" ? "processing" : "queued" };
   }
 }
 

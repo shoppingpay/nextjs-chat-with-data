@@ -2,18 +2,28 @@ import {
   BadRequestException,
   Body,
   Controller,
+  Get,
+  Param,
   Post,
+  Req,
   UseGuards,
 } from "@nestjs/common";
 
 import { ChatService } from "@/backend/chat/chat.service";
 import { SessionGuard } from "@/backend/chat/session.guard";
 import { InternalApiKeyGuard } from "@/backend/common/guards/internal-api-key.guard";
+import type { AppSession } from "@/lib/session-store";
 
 const MAX_MESSAGE_LENGTH = 2000;
+const SESSION_ID_PATTERN = /^[\w-]{1,64}$/;
+
+type SessionRequest = {
+  appSession: AppSession;
+};
 
 type ChatRequestBody = {
   message?: unknown;
+  sessionId?: unknown;
 };
 
 function normalizeMessage(value: unknown) {
@@ -36,21 +46,54 @@ function normalizeMessage(value: unknown) {
   return trimmed;
 }
 
+function normalizeSessionId(value: unknown) {
+  if (value === undefined || value === null) {
+    return undefined;
+  }
+
+  if (typeof value !== "string" || !SESSION_ID_PATTERN.test(value)) {
+    throw new BadRequestException(
+      "sessionId must be an alphanumeric string of 1–64 characters.",
+    );
+  }
+
+  return value;
+}
+
 export class ChatController {
   constructor(private readonly chatService: ChatService) {}
 
-  async chat(body: ChatRequestBody) {
+  async chat(body: ChatRequestBody, req: SessionRequest) {
     const message = normalizeMessage(body?.message);
-    return this.chatService.chat({ message });
+    const sessionId = normalizeSessionId(body?.sessionId);
+    return this.chatService.enqueue(req.appSession.userId, message, sessionId);
+  }
+
+  async getResult(params: { jobId: string }, req: SessionRequest) {
+    return this.chatService.getResult(req.appSession.userId, params.jobId);
   }
 }
 
-Reflect.defineMetadata("design:paramtypes", [ChatService], ChatController);
+Reflect.defineMetadata(
+  "design:paramtypes",
+  [ChatService],
+  ChatController,
+);
 Controller("chat")(ChatController);
 UseGuards(InternalApiKeyGuard, SessionGuard)(ChatController);
+
 Post()(
   ChatController.prototype,
   "chat",
   Object.getOwnPropertyDescriptor(ChatController.prototype, "chat")!,
 );
 Body()(ChatController.prototype, "chat", 0);
+Req()(ChatController.prototype, "chat", 1);
+
+Get("result/:jobId")(
+  ChatController.prototype,
+  "getResult",
+  Object.getOwnPropertyDescriptor(ChatController.prototype, "getResult")!,
+);
+Param()(ChatController.prototype, "getResult", 0);
+Req()(ChatController.prototype, "getResult", 1);
