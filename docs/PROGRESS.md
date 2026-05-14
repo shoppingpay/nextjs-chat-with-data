@@ -57,7 +57,7 @@
 ### Prerequisites ก่อนทดสอบ
 ```bash
 npm install
-docker compose -f docker-compose.phase2.yml up -d
+docker compose up -d
 # .env: REDIS_URL="redis://:nextjs-md-project-redis-dev-pass@localhost:6379"
 # .env: OLLAMA_BASE_URL, OLLAMA_MAIN_MODEL, OLLAMA_GUARDRAIL_MODEL
 npm run prisma:migrate && npm run prisma:seed
@@ -75,7 +75,7 @@ npm run backend:dev
 **Infrastructure**
 | ไฟล์ | รายละเอียด |
 |---|---|
-| `docker-compose.phase2.yml` (updated) | เพิ่ม `qdrant-phase3` service (port 6333, persistent volume) |
+| `docker-compose.yml` (updated) | เพิ่ม `qdrant-phase3` service (port 6333, persistent volume) |
 | `prisma/schema.prisma` (updated) | เพิ่ม `Product` และ `Sale` models (Postgres standard, ใช้ `date_trunc`) |
 | `.env.example` (updated) | เพิ่ม `OLLAMA_*`, `QDRANT_*`, `MCP_SERVER_*` vars |
 
@@ -126,7 +126,7 @@ npm install
 cd packages/mcp-server && npm install && npm run build && cd ../..
 
 # 3. Start infra (postgres + redis + qdrant)
-docker compose -f docker-compose.phase2.yml up -d
+docker compose up -d
 
 # 4. Apply DB migration
 npm run prisma:migrate

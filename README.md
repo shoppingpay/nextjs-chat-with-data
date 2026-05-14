@@ -81,10 +81,10 @@ BACKEND_API_URL="http://localhost:4000"
 BACKEND_INTERNAL_API_KEY="replace-with-a-long-random-internal-api-key"
 ```
 
-For local Phase 2 infrastructure using the same Postgres/Redis images:
+For local infrastructure using the same Postgres/Redis/Qdrant images:
 
 ```bash
-docker compose -f docker-compose.phase2.yml up -d
+docker compose up -d
 npx prisma migrate deploy
 ```
 
