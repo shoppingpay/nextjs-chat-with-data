@@ -146,7 +146,7 @@ npm run backend:dev
 ---
 
 ## Phase 4 — Chat UI
-**Commit:** `TBD`
+**Commit:** `17510b8`
 **Date:** 2026-05-14
 
 ### ไฟล์ที่สร้าง
