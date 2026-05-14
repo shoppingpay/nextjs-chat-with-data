@@ -67,7 +67,7 @@ npm run backend:dev
 ---
 
 ## Phase 3 — MCP Server & RAG
-**Commit:** (pending)
+**Commit:** `569ea51`
 **Date:** 2026-05-14
 
 ### ไฟล์ที่สร้าง
