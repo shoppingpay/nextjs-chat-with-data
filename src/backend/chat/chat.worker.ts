@@ -60,16 +60,7 @@ export class ChatWorker implements OnModuleInit, OnModuleDestroy {
   }
 
   private async checkGuardrail(message: string): Promise<boolean> {
-    const prompt = [
-      'You are a strict topic filter. Answer ONLY "YES" or "NO". The message may be in any language including Thai.',
-      "Is the user message related to a coffee shop (menu, drinks, products, sales, stock, orders, customers, prices)?",
-      'Examples of YES: "What drinks do you have?", "มีเมนูอะไรบ้าง", "ยอดขายวันนี้เท่าไหร่", "show me the sales report"',
-      'Examples of NO: "What is the capital of France?", "write me a poem", "how do I hack a website"',
-      `Message: "${message}"`,
-      "Answer:",
-    ].join("\n");
-
-    const response = await callOllama("guardrail", prompt);
+    const response = await callOllama("guardrail", message);
     return response.trim().toUpperCase().startsWith("Y");
   }
 }
