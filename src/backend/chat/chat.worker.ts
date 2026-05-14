@@ -1,6 +1,7 @@
 import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from "@nestjs/common";
 import { Worker, type Job } from "bullmq";
 
+import { AgentService, type AgentMessage } from "@/backend/chat/agent";
 import { createBullmqConnection } from "@/backend/chat/chat.env";
 import {
   CHAT_QUEUE_NAME,
@@ -15,7 +16,10 @@ export class ChatWorker implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(ChatWorker.name);
   private worker: Worker | undefined;
 
-  constructor(private readonly memoryService: MemoryService) {}
+  constructor(
+    private readonly memoryService: MemoryService,
+    private readonly agentService: AgentService,
+  ) {}
 
   onModuleInit() {
     this.worker = new Worker<ChatJobData, ChatJobResult>(
@@ -39,13 +43,17 @@ export class ChatWorker implements OnModuleInit, OnModuleDestroy {
     const { sessionId, userId, message } = job.data;
 
     const inScope = await this.checkGuardrail(message);
-
     if (!inScope) {
       return { reply: OFF_TOPIC_REPLY, inScope: false };
     }
 
     const history = await this.memoryService.getHistory(userId, sessionId);
-    const reply = await this.generateReply(message, history);
+    const agentHistory: AgentMessage[] = history.map((m) => ({
+      role: m.role,
+      content: m.content,
+    }));
+
+    const reply = await this.agentService.run(message, agentHistory);
 
     await this.memoryService.appendHistory(userId, sessionId, message, reply);
 
@@ -63,37 +71,11 @@ export class ChatWorker implements OnModuleInit, OnModuleDestroy {
     const response = await callOllama("guardrail", prompt);
     return response.trim().toUpperCase().startsWith("YES");
   }
-
-  private async generateReply(
-    message: string,
-    history: Array<{ role: string; content: string }>,
-  ): Promise<string> {
-    const historyLines =
-      history.length > 0
-        ? [
-            "Previous conversation:",
-            ...history.map((m) =>
-              m.role === "user"
-                ? `User: ${m.content}`
-                : `Assistant: ${m.content}`,
-            ),
-            "",
-          ]
-        : [];
-
-    const prompt = [
-      "You are a helpful coffee shop assistant. Answer in Thai unless the customer asks otherwise.",
-      "Keep answers concise and grounded in coffee shop topics.",
-      "",
-      ...historyLines,
-      `Customer: ${message}`,
-      "Assistant:",
-    ].join("\n");
-
-    const reply = (await callOllama("main", prompt)).trim();
-    return reply || "ขออภัย ไม่สามารถตอบได้ในขณะนี้";
-  }
 }
 
-Reflect.defineMetadata("design:paramtypes", [MemoryService], ChatWorker);
+Reflect.defineMetadata(
+  "design:paramtypes",
+  [MemoryService, AgentService],
+  ChatWorker,
+);
 Injectable()(ChatWorker);

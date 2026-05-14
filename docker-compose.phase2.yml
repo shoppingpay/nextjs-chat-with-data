@@ -23,6 +23,15 @@ services:
     volumes:
       - redis-phase2-data:/data
 
+  qdrant-phase3:
+    image: qdrant/qdrant:v1.11.4
+    container_name: nextjs-md-project-qdrant-phase3
+    ports:
+      - "${QDRANT_PORT:-6333}:6333"
+    volumes:
+      - qdrant-phase3-data:/qdrant/storage
+
 volumes:
   postgres-phase2-data:
   redis-phase2-data:
+  qdrant-phase3-data:

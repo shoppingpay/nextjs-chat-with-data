@@ -59,3 +59,33 @@ model LoginAuditLog {
   @@index([success, createdAt])
   @@index([ipAddress])
 }
+
+model Product {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  category  String?
+  price     Decimal? @db.Decimal(10, 2)
+  stock     Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  sales     Sale[]
+
+  @@index([category])
+}
+
+model Sale {
+  id          String   @id @default(cuid())
+  productId   String
+  productName String
+  quantity    Int
+  amount      Decimal  @db.Decimal(10, 2)
+  staffId     String?
+  createdAt   DateTime @default(now())
+
+  product     Product  @relation(fields: [productId], references: [id])
+
+  @@index([createdAt])
+  @@index([productName, createdAt])
+  @@index([productId, createdAt])
+}

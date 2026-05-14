@@ -22,6 +22,18 @@ export function getOllamaGuardrailModel() {
   return readTrimmed("OLLAMA_GUARDRAIL_MODEL") ?? DEFAULT_GUARDRAIL_MODEL;
 }
 
+export function getMcpServerCommand() {
+  return readTrimmed("MCP_SERVER_COMMAND") ?? "node";
+}
+
+export function getMcpServerArgs(): string[] {
+  const raw = readTrimmed("MCP_SERVER_ARGS");
+  if (!raw) {
+    return ["packages/mcp-server/dist/index.js"];
+  }
+  return raw.split(/\s+/).filter(Boolean);
+}
+
 export function getOllamaRequestTimeoutMs() {
   const raw = readTrimmed("OLLAMA_REQUEST_TIMEOUT_MS");
 
