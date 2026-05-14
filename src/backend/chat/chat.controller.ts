@@ -8,7 +8,9 @@ import {
   Req,
   UseGuards,
 } from "@nestjs/common";
+import { SkipThrottle, Throttle } from "@nestjs/throttler";
 
+import { ChatThrottlerGuard } from "@/backend/chat/chat-throttler.guard";
 import { ChatService } from "@/backend/chat/chat.service";
 import { SessionGuard } from "@/backend/chat/session.guard";
 import { InternalApiKeyGuard } from "@/backend/common/guards/internal-api-key.guard";
@@ -80,8 +82,9 @@ Reflect.defineMetadata(
   ChatController,
 );
 Controller("chat")(ChatController);
-UseGuards(InternalApiKeyGuard, SessionGuard)(ChatController);
+UseGuards(InternalApiKeyGuard, SessionGuard, ChatThrottlerGuard)(ChatController);
 
+// POST /api/chat — 20 requests per minute per authenticated user
 Post()(
   ChatController.prototype,
   "chat",
@@ -89,7 +92,13 @@ Post()(
 );
 Body()(ChatController.prototype, "chat", 0);
 Req()(ChatController.prototype, "chat", 1);
+Throttle({ default: { limit: 20, ttl: 60_000 } })(
+  ChatController.prototype,
+  "chat",
+  Object.getOwnPropertyDescriptor(ChatController.prototype, "chat")!,
+);
 
+// GET /api/chat/result/:jobId — polling endpoint, skip throttle
 Get("result/:jobId")(
   ChatController.prototype,
   "getResult",
@@ -97,3 +106,8 @@ Get("result/:jobId")(
 );
 Param()(ChatController.prototype, "getResult", 0);
 Req()(ChatController.prototype, "getResult", 1);
+SkipThrottle()(
+  ChatController.prototype,
+  "getResult",
+  Object.getOwnPropertyDescriptor(ChatController.prototype, "getResult")!,
+);

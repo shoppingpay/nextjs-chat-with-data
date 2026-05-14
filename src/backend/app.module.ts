@@ -1,4 +1,5 @@
 import { Module } from "@nestjs/common";
+import { ThrottlerModule } from "@nestjs/throttler";
 
 import { AuditLogModule } from "@/backend/audit-log/audit-log.module";
 import { ChatModule } from "@/backend/chat/chat.module";
@@ -12,6 +13,7 @@ export class AppModule {}
 Module({
   imports: [
     PrismaModule,
+    ThrottlerModule.forRoot([{ ttl: 60_000, limit: 100 }]),
     HealthModule,
     SettingsModule,
     AuditLogModule,

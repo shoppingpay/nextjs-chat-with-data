@@ -1,6 +1,7 @@
 import { Module } from "@nestjs/common";
 
 import { AgentService } from "@/backend/chat/agent";
+import { ChatThrottlerGuard } from "@/backend/chat/chat-throttler.guard";
 import { ChatController } from "@/backend/chat/chat.controller";
 import { ChatService } from "@/backend/chat/chat.service";
 import { ChatWorker } from "@/backend/chat/chat.worker";
@@ -17,5 +18,6 @@ Module({
     McpClientService,
     AgentService,
     ChatWorker,
+    ChatThrottlerGuard,
   ],
 })(ChatModule);

@@ -190,4 +190,36 @@ npm run backend:dev
 ---
 
 ## Phase 5 — Hardening
-**Status:** ยังไม่เริ่ม
+**Commit:** `TBD`
+**Date:** 2026-05-14
+
+### ไฟล์ที่สร้าง
+| ไฟล์ | รายละเอียด |
+|---|---|
+| `src/backend/chat/chat-throttler.guard.ts` | ThrottlerGuard subclass — ใช้ `userId` เป็น throttle key (fallback: IP) |
+| `src/backend/health/health.service.ts` | ตรวจสอบ Postgres, Redis, Ollama, Qdrant แบบ parallel; timeout 2s ต่อ service |
+
+### ไฟล์ที่แก้ไข
+| ไฟล์ | รายละเอียด |
+|---|---|
+| `src/backend/app.module.ts` | Import `ThrottlerModule.forRoot([{ ttl: 60_000, limit: 100 }])` |
+| `src/backend/chat/chat.module.ts` | เพิ่ม `ChatThrottlerGuard` ใน providers |
+| `src/backend/chat/chat.controller.ts` | Apply `ChatThrottlerGuard` + `@Throttle({ default: { limit: 20, ttl: 60000 } })` บน POST; `@SkipThrottle` บน GET result |
+| `src/backend/health/health.controller.ts` | Inject `HealthService`, return detailed check response |
+| `src/backend/health/health.module.ts` | เพิ่ม `HealthService` ใน providers |
+| `package.json` | เพิ่ม `@nestjs/throttler ^6` |
+
+### Design choices
+- **Rate limit key = userId**: authenticated users → ใช้ userId แทน IP เพื่อกันผู้ใช้หลายคนใน NAT เดียวกันถูก block พร้อมกัน
+- **POST /api/chat throttle**: 20 req/min per user (1 request ทุก 3 วินาที)
+- **GET /api/chat/result/:jobId**: SkipThrottle — polling endpoint ไม่ควรถูก throttle
+- **Health checks**: postgres + redis + ollama + qdrant — ทุกตัวรัน parallel, timeout 2s; `ok: false` ถ้ามี service ใดล้มเหลว
+- **CORS**: กำหนดใน main.ts ผ่าน `FRONTEND_ORIGIN` env var (ทำไว้ก่อนหน้าแล้ว)
+- **Security headers**: helmet() ใน main.ts (ทำไว้ก่อนหน้าแล้ว)
+
+### Definition of Done
+- [x] `POST /api/chat` ถูก throttle ที่ 20 req/min ต่อ user
+- [x] `GET /api/health` แสดงสถานะ postgres, redis, ollama, qdrant
+- [x] Rate limit key ใช้ userId (ไม่ใช่ IP)
+- [x] Polling endpoint ไม่ถูก throttle
+- [ ] ทดสอบ rate limit ด้วย Ollama + Redis พร้อม
