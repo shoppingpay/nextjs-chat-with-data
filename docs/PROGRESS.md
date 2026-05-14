@@ -190,7 +190,7 @@ npm run backend:dev
 ---
 
 ## Phase 5 — Hardening
-**Commit:** `TBD`
+**Commit:** `c1a8543`
 **Date:** 2026-05-14
 
 ### ไฟล์ที่สร้าง
