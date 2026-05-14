@@ -1,0 +1,185 @@
+services:
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_healthy
+    environment:
+      BACKEND_API_URL: http://backend:4000
+      BACKEND_INTERNAL_API_KEY_FILE: /run/secrets/backend_internal_api_key
+      DATABASE_URL_FILE: /run/secrets/database_url
+      NEXTAUTH_URL: ${NEXTAUTH_URL:?Set NEXTAUTH_URL to your public HTTPS origin}
+      REDIS_URL_FILE: /run/secrets/redis_url
+      TRUST_PROXY_HEADERS: ${TRUST_PROXY_HEADERS:-false}
+    ports:
+      - "${FRONTEND_PORT:-3000}:3000"
+    secrets:
+      - backend_internal_api_key
+      - database_url
+      - redis_url
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "node -e \"fetch('http://127.0.0.1:3000/login').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))\"",
+        ]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    restart: unless-stopped
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+    environment:
+      BACKEND_INTERNAL_API_KEY_FILE: /run/secrets/backend_internal_api_key
+      BACKEND_PORT: "4000"
+      DATABASE_URL_FILE: /run/secrets/database_url
+      NEXTAUTH_URL: ${NEXTAUTH_URL:?Set NEXTAUTH_URL to your public HTTPS origin}
+      REDIS_URL_FILE: /run/secrets/redis_url
+    expose:
+      - "4000"
+    secrets:
+      - backend_internal_api_key
+      - database_url
+      - redis_url
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "node -e \"fetch('http://127.0.0.1:4000/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))\"",
+        ]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+  migrate:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    restart: "no"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    command: ["npm", "run", "prisma:migrate:deploy"]
+    environment:
+      DATABASE_URL_FILE: /run/secrets/database_url
+    secrets:
+      - database_url
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+
+  seed:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    profiles:
+      - seed
+    restart: "no"
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    command:
+      [
+        "node",
+        "-r",
+        "./dist/backend/src/backend/register-paths.js",
+        "dist/backend/prisma/seed.js",
+      ]
+    environment:
+      DATABASE_URL_FILE: /run/secrets/database_url
+      SEED_SYS_ADMIN_PASSWORD_FILE: /run/secrets/seed_sys_admin_password
+    secrets:
+      - database_url
+      - seed_sys_admin_password
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+
+  postgres:
+    image: postgres:16-alpine@sha256:4e6e670bb069649261c9c18031f0aded7bb249a5b6664ddec29c013a89310d50
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-nextjs_md_project}
+      POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password
+      POSTGRES_USER: ${POSTGRES_USER:-nextjs_md_app}
+    expose:
+      - "5432"
+    volumes:
+      - postgres-prod-data:/var/lib/postgresql/data
+    secrets:
+      - postgres_password
+    security_opt:
+      - no-new-privileges:true
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U \"$${POSTGRES_USER}\" -d \"$${POSTGRES_DB}\""]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7.4-alpine@sha256:286bd4264adb303147270bb2d735352497e950f7b73b2ca42364d63d7daf61ee
+    restart: unless-stopped
+    command:
+      [
+        "sh",
+        "-c",
+        "redis-server --appendonly yes --requirepass \"$$(cat /run/secrets/redis_password)\"",
+      ]
+    expose:
+      - "6379"
+    volumes:
+      - redis-prod-data:/data
+    secrets:
+      - redis_password
+    security_opt:
+      - no-new-privileges:true
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "redis-cli -a \"$$(cat /run/secrets/redis_password)\" ping | grep PONG",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  postgres-prod-data:
+  redis-prod-data:
+
+secrets:
+  backend_internal_api_key:
+    file: ${BACKEND_INTERNAL_API_KEY_SECRET_FILE:-./secrets/backend_internal_api_key}
+  database_url:
+    file: ${DATABASE_URL_SECRET_FILE:-./secrets/database_url}
+  postgres_password:
+    file: ${POSTGRES_PASSWORD_SECRET_FILE:-./secrets/postgres_password}
+  redis_password:
+    file: ${REDIS_PASSWORD_SECRET_FILE:-./secrets/redis_password}
+  redis_url:
+    file: ${REDIS_URL_SECRET_FILE:-./secrets/redis_url}
+  seed_sys_admin_password:
+    file: ${SEED_SYS_ADMIN_PASSWORD_SECRET_FILE:-./secrets/seed_sys_admin_password}

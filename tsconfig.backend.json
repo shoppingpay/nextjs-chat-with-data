@@ -1,0 +1,25 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "allowJs": false,
+    "emitDecoratorMetadata": true,
+    "experimentalDecorators": true,
+    "isolatedModules": false,
+    "module": "commonjs",
+    "moduleResolution": "node",
+    "noEmit": false,
+    "outDir": "dist/backend",
+    "rootDir": ".",
+    "types": ["node"]
+  },
+  "include": [
+    "prisma/seed.ts",
+    "src/backend/**/*.ts",
+    "src/generated/**/*.ts",
+    "src/lib/env.ts",
+    "src/lib/password.ts",
+    "src/lib/session-policy.ts",
+    "src/lib/validation.ts"
+  ],
+  "exclude": ["node_modules"]
+}

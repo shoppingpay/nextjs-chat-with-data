@@ -1,0 +1,6 @@
+ALTER TABLE "User"
+ADD COLUMN "email" TEXT,
+ADD COLUMN "position" TEXT,
+ADD COLUMN "department" TEXT,
+ADD COLUMN "isActive" BOOLEAN NOT NULL DEFAULT true,
+ADD COLUMN "lastLoginAt" TIMESTAMP(3);

@@ -1,0 +1,343 @@
+@import "tailwindcss";
+
+:root {
+  --background: #0a0e14;
+  --foreground: #e6edf3;
+  --accent: #1d9e75;
+  --accent-warning: #ef9f27;
+  --accent-info: #378add;
+  --surface: #161b22;
+  --surface-hover: #1c2128;
+  --surface-raised: #21262d;
+  --border: #21262d;
+  --border-strong: #30363d;
+  --muted: #8b949e;
+  --danger: #e24b4a;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-inter);
+  --font-mono: var(--font-jetbrains-mono);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  color-scheme: dark;
+  font-family: var(--font-inter), "Segoe UI", Arial, Helvetica, sans-serif;
+}
+
+::selection {
+  background: color-mix(in srgb, var(--accent) 35%, transparent);
+  color: #020617;
+}
+
+input,
+select,
+textarea {
+  accent-color: var(--accent);
+}
+
+input,
+select,
+textarea {
+  background: #0f141b;
+  border-color: var(--border-strong) !important;
+  color: var(--foreground) !important;
+  transition:
+    border-color 160ms ease,
+    box-shadow 160ms ease,
+    background-color 160ms ease,
+    color 160ms ease;
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: var(--muted);
+}
+
+option {
+  background-color: #0f141b;
+  color: var(--foreground);
+}
+
+option:checked,
+option:hover,
+option:focus {
+  background: var(--accent) !important;
+  background-color: var(--accent) !important;
+  box-shadow: 0 0 0 9999px var(--accent) inset;
+  color: #ffffff !important;
+}
+
+input:not([type="checkbox"]):not([type="radio"]):focus,
+input:not([type="checkbox"]):not([type="radio"]):focus-visible,
+select:focus,
+select:focus-visible,
+textarea:focus,
+textarea:focus-visible {
+  border-color: var(--accent) !important;
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 20%, transparent) !important;
+  outline: none !important;
+}
+
+input:not([type="checkbox"]):not([type="radio"]):hover:not(:disabled):not(:read-only),
+select:hover:not(:disabled),
+textarea:hover:not(:disabled):not(:read-only) {
+  border-color: color-mix(in srgb, var(--accent) 50%, var(--border-strong)) !important;
+}
+
+input:disabled,
+input:read-only,
+select:disabled,
+textarea:disabled,
+textarea:read-only {
+  background-color: #0f141b !important;
+  color: var(--muted) !important;
+  opacity: 0.8;
+}
+
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+input:-webkit-autofill:active,
+input:autofill,
+select:-webkit-autofill,
+select:autofill,
+textarea:-webkit-autofill,
+textarea:autofill,
+.autofill-dark:-webkit-autofill,
+.autofill-dark:autofill {
+  background-color: #0f141b !important;
+  background-image: none !important;
+  -webkit-box-shadow: 0 0 0 1000px #0f141b inset !important;
+  box-shadow: 0 0 0 1000px #0f141b inset !important;
+  -webkit-text-fill-color: var(--foreground) !important;
+  caret-color: var(--foreground);
+  border-color: var(--border-strong) !important;
+  color: var(--foreground) !important;
+  transition:
+    background-color 999999s ease-in-out 0s,
+    color 999999s ease-in-out 0s;
+}
+
+input:-webkit-autofill:focus,
+input:autofill:focus,
+select:-webkit-autofill:focus,
+select:autofill:focus,
+textarea:-webkit-autofill:focus,
+textarea:autofill:focus,
+.autofill-dark:-webkit-autofill:focus,
+.autofill-dark:autofill:focus {
+  border-color: var(--accent) !important;
+  outline: 2px solid color-mix(in srgb, var(--accent) 20%, transparent);
+  outline-offset: 0;
+}
+
+table {
+  color: var(--muted);
+}
+
+th {
+  color: var(--muted);
+  font-weight: 500;
+}
+
+td {
+  color: var(--muted);
+}
+
+a[href],
+button:not(:disabled),
+input[type="button"]:not(:disabled),
+input[type="checkbox"]:not(:disabled),
+input[type="radio"]:not(:disabled),
+input[type="reset"]:not(:disabled),
+input[type="submit"]:not(:disabled),
+select:not(:disabled),
+[role="button"]:not([aria-disabled="true"]) {
+  cursor: pointer !important;
+}
+
+a[href],
+button:not(:disabled),
+input[type="button"]:not(:disabled),
+input[type="reset"]:not(:disabled),
+input[type="submit"]:not(:disabled),
+[role="button"]:not([aria-disabled="true"]) {
+  transition:
+    background-color 160ms ease,
+    border-color 160ms ease,
+    color 160ms ease,
+    filter 160ms ease,
+    opacity 160ms ease;
+}
+
+button:not(:disabled),
+input[type="button"]:not(:disabled),
+input[type="reset"]:not(:disabled),
+input[type="submit"]:not(:disabled),
+[role="button"]:not([aria-disabled="true"]) {
+  color: var(--muted) !important;
+}
+
+a[href]:hover,
+button:not(:disabled):hover,
+input[type="button"]:not(:disabled):hover,
+input[type="reset"]:not(:disabled):hover,
+input[type="submit"]:not(:disabled):hover,
+[role="button"]:not([aria-disabled="true"]):hover {
+  filter: brightness(1.06);
+}
+
+button:not(:disabled):hover:not([class*="bg-[#1d9e75]"]):not([class*="bg-slate-900"]):not([class*="bg-red-600"]),
+input[type="button"]:not(:disabled):hover,
+input[type="reset"]:not(:disabled):hover,
+input[type="submit"]:not(:disabled):hover,
+[role="button"]:not([aria-disabled="true"]):hover:not([class*="bg-[#1d9e75]"]):not([class*="bg-slate-900"]):not([class*="bg-red-600"]) {
+  color: var(--foreground);
+}
+
+button:not(:disabled):focus-visible,
+a[href]:focus-visible,
+input[type="button"]:not(:disabled):focus-visible,
+input[type="checkbox"]:not(:disabled):focus-visible,
+input[type="radio"]:not(:disabled):focus-visible,
+input[type="reset"]:not(:disabled):focus-visible,
+input[type="submit"]:not(:disabled):focus-visible,
+select:not(:disabled):focus-visible,
+[role="button"]:not([aria-disabled="true"]):focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--accent) 60%, transparent);
+  outline-offset: 2px;
+}
+
+button[class*="border"]:not(:disabled):not([class*="bg-[#1d9e75]"]):not([class*="bg-slate-900"]):not([class*="bg-red-600"]):not([class*="bg-transparent"]) {
+  background-color: var(--surface-raised);
+}
+
+button[class*="border"]:not(:disabled):not([class*="bg-[#1d9e75]"]):not([class*="bg-slate-900"]):not([class*="bg-red-600"]):not([class*="bg-transparent"]):hover {
+  background-color: var(--border-strong);
+  color: var(--foreground) !important;
+}
+
+button[aria-label^="Close"]:not(:disabled) {
+  background-color: var(--surface-raised) !important;
+  border: 1px solid var(--border-strong) !important;
+  color: var(--muted) !important;
+}
+
+button[aria-label^="Close"]:not(:disabled):hover {
+  background-color: var(--border-strong) !important;
+  color: var(--foreground) !important;
+}
+
+button[class*="bg-[#1d9e75]"]:not(:disabled),
+button[class*="bg-slate-900"]:not(:disabled),
+a[class*="bg-[#1d9e75]"],
+a[class*="bg-slate-900"] {
+  color: var(--muted) !important;
+}
+
+button[class*="bg-[#1d9e75]"]:not(:disabled):hover,
+button[class*="bg-slate-900"]:not(:disabled):hover,
+a[class*="bg-[#1d9e75]"]:hover,
+a[class*="bg-slate-900"]:hover {
+  color: #ffffff !important;
+  filter: brightness(1.12);
+}
+
+button[class*="bg-red-600"]:not(:disabled),
+a[class*="bg-red-600"] {
+  background-color: #dc2626 !important;
+  color: var(--muted) !important;
+}
+
+button[class*="bg-red-600"]:not(:disabled):hover,
+a[class*="bg-red-600"]:hover {
+  background-color: #ef4444 !important;
+  color: #ffffff !important;
+  filter: brightness(1.12);
+}
+
+button:disabled,
+input:disabled,
+select:disabled,
+[aria-disabled="true"] {
+  cursor: not-allowed;
+}
+
+button:disabled {
+  background-color: var(--surface-raised) !important;
+  color: #59636e !important;
+}
+
+/* Legacy utility compatibility while the app moves to the CNC dark theme. */
+.bg-white,
+.bg-slate-50,
+.bg-slate-50\/70,
+.bg-slate-100,
+.bg-slate-200,
+.bg-slate-300,
+.bg-slate-400 {
+  background-color: var(--surface) !important;
+}
+
+.bg-slate-900,
+.bg-slate-950 {
+  background-color: var(--accent) !important;
+  color: var(--foreground) !important;
+}
+
+.bg-red-50 {
+  background-color: color-mix(in srgb, var(--danger) 12%, transparent) !important;
+}
+
+.bg-amber-50 {
+  background-color: color-mix(in srgb, var(--accent-warning) 12%, transparent) !important;
+}
+
+.border-slate-100,
+.border-slate-200,
+.border-slate-200\/80,
+.border-slate-300 {
+  border-color: var(--border) !important;
+}
+
+.divide-slate-100 > :not(:last-child),
+.divide-slate-200 > :not(:last-child) {
+  border-color: var(--border) !important;
+}
+
+.text-slate-950,
+.text-slate-900,
+.text-slate-800,
+.text-slate-700 {
+  color: var(--foreground) !important;
+}
+
+.text-slate-600,
+.text-slate-500,
+.text-slate-400 {
+  color: var(--muted) !important;
+}
+
+.text-red-600,
+.text-red-700 {
+  color: #ff7776 !important;
+}
+
+.text-amber-900 {
+  color: var(--accent-warning) !important;
+}
+
+.rounded-2xl {
+  border-radius: 10px !important;
+}
+
+.shadow-sm,
+.shadow-xl,
+[class*="shadow-["] {
+  box-shadow: none !important;
+}
