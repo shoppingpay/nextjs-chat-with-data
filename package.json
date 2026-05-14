@@ -14,7 +14,8 @@
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
     "prisma:migrate:deploy": "prisma migrate deploy",
-    "prisma:seed": "prisma db seed"
+    "prisma:seed": "prisma db seed",
+    "postinstall": "node -e \"require('fs').writeFileSync('node_modules/server-only/index.js', '// no-op: server-only is a Next.js guard; NestJS always runs server-side\\n')\""
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.0.4",
@@ -49,6 +50,7 @@
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "16.2.4",
+    "server-only": "^0.0.1",
     "tailwindcss": "^4",
     "tsx": "^4.21.0",
     "typescript": "^5"
