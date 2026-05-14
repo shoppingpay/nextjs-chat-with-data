@@ -146,7 +146,46 @@ npm run backend:dev
 ---
 
 ## Phase 4 — Chat UI
-**Status:** ยังไม่เริ่ม
+**Commit:** `TBD`
+**Date:** 2026-05-14
+
+### ไฟล์ที่สร้าง
+
+**Next.js API Proxy Routes**
+| ไฟล์ | รายละเอียด |
+|---|---|
+| `src/app/api/chat/route.ts` | POST proxy → NestJS `/api/chat`; ส่ง Cookie + x-internal-api-key; same-origin check |
+| `src/app/api/chat/result/[jobId]/route.ts` | GET proxy → NestJS `/api/chat/result/:jobId`; forwards session cookie |
+
+**Chat UI**
+| ไฟล์ | รายละเอียด |
+|---|---|
+| `src/app/(protected)/chat/page.tsx` | Server Component — auth guard + user initials → renders ChatPanel |
+| `src/app/(protected)/chat/chat-panel.tsx` | Client Component — welcome screen, suggestion cards, message list, typing indicator, BullMQ job polling (500ms interval, max 60 attempts) |
+
+### ไฟล์ที่แก้ไข
+| ไฟล์ | รายละเอียด |
+|---|---|
+| `src/components/app-nav.tsx` | เพิ่ม Chat nav item (MessageSquare icon, `/chat` route) |
+| `src/app/globals.css` | เพิ่ม `@keyframes chat-in`, `@keyframes typing-dot`, `.chat-msg-in`, `.chat-input` utilities |
+
+### Design
+- Dark theme ตรง mockup: `--bg:#0a0e14`, `--accent:#1d9e75`
+- Welcome screen พร้อม suggestion cards 4 ช่อง (2×2 grid)
+- Message bubbles: user (green tint, right-aligned) / AI (dark surface, left-aligned)
+- Typing indicator (3 dots bounce animation) ระหว่าง polling
+- "+ New chat" button ใน topbar (แสดงเมื่อมีข้อความ)
+- Session continuity: `sessionId` ถูกส่งกลับไปในทุก request เพื่อ multi-turn conversation
+- Full-height layout: `height: calc(100vh - 59px)` ปรับตาม sticky header
+
+### Definition of Done
+- [x] ส่งข้อความได้ผ่าน POST `/api/chat`
+- [x] Poll `/api/chat/result/:jobId` จนได้คำตอบ
+- [x] Typing indicator แสดงระหว่างรอ
+- [x] Welcome screen + suggestion cards ก่อนเริ่มสนทนา
+- [x] New chat button รีเซต session
+- [x] Error handling (timeout, failed job, network error)
+- [ ] ทดสอบ end-to-end — ต้องมี Ollama + Redis พร้อม
 
 ---
 

@@ -341,3 +341,41 @@ button:disabled {
 [class*="shadow-["] {
   box-shadow: none !important;
 }
+
+@keyframes chat-in {
+  from {
+    opacity: 0;
+    transform: translateY(5px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes typing-dot {
+  0%,
+  80%,
+  100% {
+    opacity: 0.2;
+  }
+  40% {
+    opacity: 1;
+  }
+}
+
+.chat-msg-in {
+  animation: chat-in 0.2s ease;
+}
+
+.chat-input {
+  background: transparent !important;
+  border: none !important;
+}
+
+.chat-input:focus,
+.chat-input:focus-visible {
+  border: none !important;
+  box-shadow: none !important;
+  outline: none !important;
+}

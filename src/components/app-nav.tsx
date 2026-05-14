@@ -12,6 +12,7 @@ import {
   Home,
   KeyRound,
   LogOut,
+  MessageSquare,
   MonitorCog,
   Settings,
   UserRound,
@@ -30,6 +31,7 @@ import { cn } from "@/lib/utils";
 
 const navItems = [
   { href: "/home", icon: Home, label: "Home" },
+  { href: "/chat", icon: MessageSquare, label: "Chat" },
   { href: "/train-model", icon: BrainCircuit, label: "Train model" },
   { href: "/analytics", icon: BarChart3, label: "Analytics" },
   { href: "/machine", icon: MonitorCog, label: "Machine" },
