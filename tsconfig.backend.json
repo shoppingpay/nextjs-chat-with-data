@@ -18,7 +18,11 @@
     "src/generated/**/*.ts",
     "src/lib/env.ts",
     "src/lib/password.ts",
+    "src/lib/prisma.ts",
+    "src/lib/redis.ts",
     "src/lib/session-policy.ts",
+    "src/lib/session-store.ts",
+    "src/lib/settings.ts",
     "src/lib/validation.ts"
   ],
   "exclude": ["node_modules"]

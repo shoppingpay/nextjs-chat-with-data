@@ -1,6 +1,7 @@
 import { Module } from "@nestjs/common";
 
 import { AuditLogModule } from "@/backend/audit-log/audit-log.module";
+import { ChatModule } from "@/backend/chat/chat.module";
 import { HealthModule } from "@/backend/health/health.module";
 import { PrismaModule } from "@/backend/prisma/prisma.module";
 import { SettingsModule } from "@/backend/settings/settings.module";
@@ -15,5 +16,6 @@ Module({
     SettingsModule,
     AuditLogModule,
     UsersModule,
+    ChatModule,
   ],
 })(AppModule);
