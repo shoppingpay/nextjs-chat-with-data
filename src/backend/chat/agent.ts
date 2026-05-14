@@ -5,39 +5,19 @@ import {
   getOllamaMainModel,
   getOllamaRequestTimeoutMs,
 } from "@/backend/chat/chat.env";
-import { McpClientService, type McpToolDefinition } from "@/backend/chat/mcp-client";
+import { McpClientService } from "@/backend/chat/mcp-client";
 
-const MAX_TOOL_ITERATIONS = 4;
 const GENERIC_LLM_UNAVAILABLE = "AI service is temporarily unavailable.";
 
-type OllamaToolCall = {
-  function: {
-    name: string;
-    arguments: Record<string, unknown>;
-  };
-};
-
 type OllamaChatMessage = {
-  role: "system" | "user" | "assistant" | "tool";
+  role: "system" | "user" | "assistant";
   content: string;
-  tool_calls?: OllamaToolCall[];
 };
 
 type OllamaChatResponse = {
   message?: OllamaChatMessage;
   done?: boolean;
 };
-
-function mcpToolToOllamaFormat(tool: McpToolDefinition) {
-  return {
-    type: "function" as const,
-    function: {
-      name: tool.name,
-      description: tool.description,
-      parameters: tool.inputSchema,
-    },
-  };
-}
 
 export type AgentMessage = {
   role: "user" | "assistant";
@@ -50,56 +30,47 @@ export class AgentService {
   constructor(private readonly mcp: McpClientService) {}
 
   async run(userMessage: string, history: AgentMessage[]): Promise<string> {
-    const tools = this.mcp.isReady() ? this.mcp.listTools() : [];
-    const ollamaTools = tools.map(mcpToolToOllamaFormat);
+    // Naive RAG: pre-fetch relevant context and inject into system prompt.
+    // Avoids the slow multi-turn tool-calling loop for non-fast models.
+    const contextBlock = await this.fetchContext(userMessage);
+
+    const systemContent = [
+      "You are a helpful coffee shop assistant. Answer in Thai unless the customer asks otherwise.",
+      "Do NOT fabricate answers. If you don't have relevant information, say so politely.",
+      ...(contextBlock ? ["---", "Relevant information from the knowledge base:", contextBlock, "---"] : []),
+    ].join("\n");
 
     const messages: OllamaChatMessage[] = [
-      {
-        role: "system",
-        content: [
-          "You are a helpful coffee shop assistant. Answer in Thai unless the customer asks otherwise.",
-          "Use the available tools to look up real data instead of guessing.",
-          "If a tool returns success=false, explain politely and suggest contacting staff — do NOT fabricate answers.",
-        ].join("\n"),
-      },
-      ...history.map<OllamaChatMessage>((m) => ({
-        role: m.role,
-        content: m.content,
-      })),
+      { role: "system", content: systemContent },
+      ...history.map<OllamaChatMessage>((m) => ({ role: m.role, content: m.content })),
       { role: "user", content: userMessage },
     ];
 
-    for (let iteration = 0; iteration < MAX_TOOL_ITERATIONS; iteration++) {
-      const response = await this.callOllamaChat(messages, ollamaTools);
-      const assistant = response.message;
+    const response = await this.callOllamaChat(messages);
+    const assistant = response.message;
 
-      if (!assistant) {
-        throw new ServiceUnavailableException(GENERIC_LLM_UNAVAILABLE);
-      }
-
-      if (!assistant.tool_calls || assistant.tool_calls.length === 0) {
-        return assistant.content.trim() || "ขออภัย ไม่สามารถตอบได้ในขณะนี้";
-      }
-
-      messages.push(assistant);
-
-      for (const call of assistant.tool_calls) {
-        const toolResultJson = await this.mcp.callTool(
-          call.function.name,
-          call.function.arguments,
-        );
-
-        messages.push({ role: "tool", content: toolResultJson });
-      }
+    if (!assistant) {
+      throw new ServiceUnavailableException(GENERIC_LLM_UNAVAILABLE);
     }
 
-    this.logger.warn(`Agent exceeded ${MAX_TOOL_ITERATIONS} tool iterations.`);
-    return "ขออภัย กระบวนการคิดวิเคราะห์ใช้เวลานานเกินไป กรุณาลองถามใหม่อีกครั้ง";
+    return assistant.content.trim() || "ขออภัย ไม่สามารถตอบได้ในขณะนี้";
+  }
+
+  private async fetchContext(query: string): Promise<string> {
+    if (!this.mcp.isReady()) return "";
+
+    try {
+      const raw = await this.mcp.callTool("search_coffee_knowledge", { query, limit: 3 });
+      const parsed = JSON.parse(raw) as { success?: boolean; data?: Array<{ text: string; score: number }> };
+      if (!parsed.success || !Array.isArray(parsed.data) || parsed.data.length === 0) return "";
+      return parsed.data.map((h) => h.text).join("\n\n");
+    } catch {
+      return "";
+    }
   }
 
   private async callOllamaChat(
     messages: OllamaChatMessage[],
-    tools: ReturnType<typeof mcpToolToOllamaFormat>[],
   ): Promise<OllamaChatResponse> {
     const baseUrl = getOllamaBaseUrl().replace(/\/$/, "");
     const url = `${baseUrl}/api/chat`;
@@ -114,10 +85,6 @@ export class AgentService {
       messages,
       stream: false,
     };
-
-    if (tools.length > 0) {
-      body.tools = tools;
-    }
 
     let response: Response;
 
