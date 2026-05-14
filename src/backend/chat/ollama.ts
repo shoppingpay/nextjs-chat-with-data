@@ -34,7 +34,12 @@ export async function callOllama(
     response = await fetch(url, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ model, prompt, stream: false }),
+      body: JSON.stringify({
+        model,
+        prompt,
+        stream: false,
+        ...(role === "guardrail" && { options: { num_predict: 1, temperature: 0.01 } }),
+      }),
       signal: controller.signal,
     });
   } catch (error) {

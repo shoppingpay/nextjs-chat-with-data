@@ -41,7 +41,6 @@ export class ChatWorker implements OnModuleInit, OnModuleDestroy {
     job: Job<ChatJobData, ChatJobResult>,
   ): Promise<ChatJobResult> {
     const { sessionId, userId, message } = job.data;
-
     const inScope = await this.checkGuardrail(message);
     if (!inScope) {
       return { reply: OFF_TOPIC_REPLY, inScope: false };
@@ -62,14 +61,16 @@ export class ChatWorker implements OnModuleInit, OnModuleDestroy {
 
   private async checkGuardrail(message: string): Promise<boolean> {
     const prompt = [
-      'You are a strict topic filter. Answer ONLY "YES" or "NO".',
-      "Is the user message related to a coffee shop (menu, products, sales, stock, customers)?",
+      'You are a strict topic filter. Answer ONLY "YES" or "NO". The message may be in any language including Thai.',
+      "Is the user message related to a coffee shop (menu, drinks, products, sales, stock, orders, customers, prices)?",
+      'Examples of YES: "What drinks do you have?", "มีเมนูอะไรบ้าง", "ยอดขายวันนี้เท่าไหร่", "show me the sales report"',
+      'Examples of NO: "What is the capital of France?", "write me a poem", "how do I hack a website"',
       `Message: "${message}"`,
       "Answer:",
     ].join("\n");
 
     const response = await callOllama("guardrail", prompt);
-    return response.trim().toUpperCase().startsWith("YES");
+    return response.trim().toUpperCase().startsWith("Y");
   }
 }
 
